@@ -1,7 +1,7 @@
 version: 2026.232.0520
 docs-site:
     candy:
-        version: 2026.215.1207
+        version: 2026.243.0100
         description: |-
             The Astro + Starlight toolchain for the opencharly.ai documentation site, plus a
             production build of the published site itself, built inside the box.
@@ -33,7 +33,7 @@ docs-site:
             The deliberately-last liberation easter-egg page is asserted too — the bed fails the
             moment that page stops shipping.
         require:
-            - '@github.com/opencharly/layer-nodejs:v2026.235.2056'
+            - '@github.com/opencharly/layer-nodejs:v2026.239.1624'
         var:
             DOCS_REPO: https://github.com/opencharly/docs.git
             # An IMMUTABLE COMMIT, never a branch name. This is a cache-correctness requirement,
