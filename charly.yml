@@ -1,4 +1,14 @@
 version: 2026.249.2125
+defaults:
+    platform:
+        - linux/amd64
+    tag: auto
+    registry: ghcr.io/opencharly
+    build:
+        - rpm
+    merge:
+        auto: false
+        max_mb: 128
 docs-site:
     candy:
         version: 2026.243.0100
