@@ -1,4 +1,14 @@
-version: 2026.232.0520
+version: 2026.261.1747
+defaults:
+    platform:
+        - linux/amd64
+    tag: auto
+    registry: ghcr.io/opencharly
+    build:
+        - rpm
+    merge:
+        auto: false
+        max_mb: 128
 docs-site:
     candy:
         version: 2026.243.0100
@@ -187,6 +197,84 @@ docs-site:
                 - build
                 - runtime
               command: cat /srv/docs/dist/liberation/index.html
+
+# =============================================================================
+# docs-site-app + check-docs — the R10 bed for the docs-site candy. Moved here
+# from opencharly/charly's charly.yml, which cannot exercise this candy as
+# in-development code (the bed's dev-tree override resolves the bed project's
+# own superproject, not the candy owner), so the artifact owner tests its own
+# candy locally.
+#
+# The box composes the LOCAL `docs-site` candy above (no @github pin), so a
+# bed run always tests this checkout. The distro tag chain is load-bearing, not
+# decoration: the package resolver walks the IMAGE's declared chain
+# most-specific-first, so a box that declares `base:` alone matches no
+# per-distro section and silently installs nothing (the `git: command not
+# found` failure the first bed run hit before the tags were added).
+# =============================================================================
+docs-site-app:
+    candy:
+        version: 2026.243.0300
+        base: quay.io/fedora/fedora:43
+        description: |-
+            The documentation-site box: a minimal Fedora base composing the local
+            docs-site candy, which clones the published docs repo, installs its node
+            dependencies from the committed lockfile, and runs the production Astro
+            build. The candy's checks run in BOTH contexts, so `charly check box
+            docs-site-app` proves the site builds and has the right shape without
+            deploying anything, and `charly check live` re-proves the same shape
+            against the running pod — which is what makes the bed's fresh-rebuild leg
+            assert the site rather than merely that the container is up.
+        distro:
+            - fedora:43
+            - fedora
+        candy:
+            - docs-site
+        # The box's OWN deterministic acceptance step (ADE). It asserts the box's
+        # declared composition identity — the Fedora 43 base it was authored on — and
+        # runs in BOTH contexts, so `charly check box docs-site-app` proves it without
+        # deploying. Deliberately NOT a duplicate of the composed candy's site-shape
+        # checks (R3): the candy proves the SITE; the box proves the BOX was built on
+        # the base it declares (a silent base substitution — e.g. a tag roll that moved
+        # fedora 43's content — would fail here while every candy check still passed).
+        plan:
+            - check: the docs-site-app box was built on the Fedora 43 base it declares
+              id: docs-site-app-base-identity
+              exit_status: 0
+              stdout:
+                - contains: ID=fedora
+                - contains: VERSION_ID=43
+              context:
+                - build
+                - runtime
+              command: cat /etc/os-release
+check-docs:
+    pod:
+        image: docs-site-app
+        disposable: true
+        lifecycle: dev
+        description: >-
+            R10 bed for the opencharly.ai documentation site. Deploying it to steady state proves the docs-site-app box — whose image build ran `npm ci` + the production Astro build and asserted the built site's shape (a generated CLI page, a candy page carrying its published acceptance plan, a recipe card with rewritten cross-references, a RUNTIME out-of-process plugin's page with its CUE schema, and the provider cross-index) — builds, starts, and stays up. The generator's own cross-reference integrity gate (an unresolvable /charly-x:y reference fails generation) is covered by the plugin's Go tests; this bed covers the artifact those produce. Content staleness against the pinned charly is gated by the docs repo's own deploy workflow, not here.
+        plan:
+            - check: the docs-site pod reached steady state (the built site's box runs)
+              id: docs-pod-running
+              exit_status: 0
+              stdout:
+                - contains: '"kind": "pod"'
+                - contains: check-docs
+              context:
+                - runtime
+              command:
+                command: ${CHARLY_BIN} status --json
+                in_container: false
+            - check: the built site is present in the running container, entry point included
+              id: docs-pod-site-present
+              exit_status: 0
+              stdout:
+                - contains: OpenCharly
+              context:
+                - runtime
+              command: cat /srv/docs/dist/index.html
 
 docs-site-skill:
     skill:
