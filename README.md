@@ -43,9 +43,9 @@ docs-site-app:
       - '@github.com/opencharly/layer-docs-site:v2026.269.1347'
 ```
 
-Verify without deploying — every check is build-context, so
-`charly check box docs-site-app` proves the whole site builds and has the right
-shape:
+Verify without deploying — every check runs in both the `build` and `runtime`
+contexts, so `charly check box docs-site-app` proves the whole site builds and
+has the right shape:
 
 ```bash
 charly check box docs-site-app

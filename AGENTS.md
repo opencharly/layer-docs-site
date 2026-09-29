@@ -55,11 +55,7 @@ Canonical files:
 
 ## Landing
 
-- PR-only. Every change lands through a pull request; the org-required
-  `charly/pr-validator` validates the diff and body and arms native auto-merge
-  on PASS. Direct pushes to `main` are blocked.
-- History lives in `CHANGELOG/` (written by `tag-on-merge` at merge time); the
-  PR body IS the changelog.
-- The authoritative rulebook is the umbrella `AGENTS.md` in
-  `opencharly/opencharly` and `charly/AGENTS.md` in the charly repo. Do not
-  restate its rules here.
+- Landing is owned by the authoritative rulebook — the umbrella `AGENTS.md` in
+  `opencharly/opencharly` and `charly/AGENTS.md` in the charly repo — and by the
+  `git-workflow` skill (`/charly-internals:git-workflow`); load it before any
+  git/PR action. History lives in `CHANGELOG/`. Do not restate the rules here.
