@@ -53,7 +53,7 @@ docs-site:
             # docs:pin` checks that (charly no longer carries a `docs` gitlink — the docs repo is
             # standalone since the de-submodule cutover), and the bed asserts it from inside the
             # built image.
-            DOCS_REF: f1c823b181e8316b20184f4b4d6dd8a495ff1e78
+            DOCS_REF: c5568310f0409676728f552712f0896359a789c5
         distro:
             fedora:
                 package:
@@ -91,7 +91,7 @@ docs-site:
               id: docs-site-pinned-commit
               exit_status: 0
               stdout:
-                - contains: f1c823b181e8316b20184f4b4d6dd8a495ff1e78
+                - contains: c5568310f0409676728f552712f0896359a789c5
               context:
                 - build
                 - runtime
@@ -140,7 +140,16 @@ docs-site:
                 - runtime
               command: cat /srv/docs/dist/reference/cli/docs/index.html
 
-            - check: a generated candy page publishes its plan as a runnable acceptance spec (the ADE surface a reader can see without cloning anything)
+            - # The page's DIRECTORY carries the corpus version the site projects from
+              # (`<repo>-<name>-v<calver>/`), so a hard-coded directory would redden this
+              # bed on the next corpus advance — a false alarm about a change that never
+              # touched the site. The page is therefore resolved BY NAME and the newest
+              # version is read; the assertion that matters (a generated candy page
+              # publishes its Acceptance plan) is unchanged. The `test -n` is what makes
+              # the check FAIL when the page is gone at all: a generator that narrowed to
+              # documenting nothing would otherwise leave `cat` reading an empty path and
+              # the check would pass on an empty stdout.
+              check: a generated candy page publishes its plan as a runnable acceptance spec (the ADE surface a reader can see without cloning anything)
               id: docs-site-candy-acceptance-plan
               exit_status: 0
               stdout:
@@ -148,7 +157,10 @@ docs-site:
               context:
                 - build
                 - runtime
-              command: cat /srv/docs/dist/reference/candy/charly/index.html
+              command: |
+                page=$(find /srv/docs/dist/reference/candy -type f -path '*/charly/index.html' | sort -V | tail -n 1)
+                test -n "$page" || { echo "no generated candy page for 'charly' under /srv/docs/dist/reference/candy" >&2; exit 1; }
+                cat "$page"
 
             - check: a recipe card from the skill corpus rendered, with its harness cross-references rewritten into working site links
               id: docs-site-recipe-card
@@ -174,7 +186,18 @@ docs-site:
               context:
                 - build
                 - runtime
-              command: cat /srv/docs/dist/reference/plugin/plugin-cdp/index.html
+              # plugin-cdp's page is CORPUS-projected, so its directory carries the corpus
+              # version (`<repo>-<name>-v<calver>/`) and a hard-coded directory would
+              # redden this bed on the next corpus advance — a false alarm about a change
+              # that never touched the site. Resolved BY NAME, newest version read; the
+              # `test -n` is what makes the check FAIL when the page is gone at all, which
+              # is the case this check exists to catch: a generator that narrowed to the
+              # default-active (compiled-in) plugin set would drop plugin-cdp entirely,
+              # and `cat` of an empty path would pass on an empty stdout.
+              command: |
+                page=$(find /srv/docs/dist/reference/plugin -type f -path '*/plugin-cdp/index.html' | sort -V | tail -n 1)
+                test -n "$page" || { echo "no plugin page for 'plugin-cdp' under /srv/docs/dist/reference/plugin" >&2; exit 1; }
+                cat "$page"
 
             - check: the provider cross-index resolves every reserved word to its owning plugin
               id: docs-site-provider-index
