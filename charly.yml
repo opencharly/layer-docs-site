@@ -49,10 +49,11 @@ docs-site:
             # layer's cache key moves only when this string moves. With `main` here the key was
             # CONSTANT, so once the clone layer was cached the bed kept rebuilding whatever docs
             # `main` pointed at when that layer was first built — and went on reporting PASS while
-            # proving stale content. It must equal the docs repo's current `main` head; `task
-            # docs:pin` checks that (charly no longer carries a `docs` gitlink — the docs repo is
-            # standalone since the de-submodule cutover), and the bed asserts it from inside the
-            # built image.
+            # proving stale content. It must equal the docs repo's current `main` head; `charly
+            # task docs-pin` REPORTS that (charly no longer carries a `docs` gitlink — the docs
+            # repo is standalone since the de-submodule cutover, and a pin that is behind is an
+            # advance available NOW in opencharly/docs, so the report stays green), and the bed
+            # asserts the pin itself from inside the built image.
             DOCS_REF: c5568310f0409676728f552712f0896359a789c5
         distro:
             fedora:
@@ -80,8 +81,8 @@ docs-site:
               # substitution does not resolve a candy `var:` — it SKIPS the step with "unresolved
               # variables: DOCS_REF" instead, which would turn this guard into a non-event while
               # the bed still reported PASS. That is the same failure this check exists to catch,
-              # so it must not depend on substitution. `task docs:pin` asserts BOTH occurrences
-              # against the docs gitlink, so the duplication cannot drift unnoticed.
+              # so it must not depend on substitution. `charly task docs-pin` FAILS when the two
+              # occurrences do not agree, so the duplication cannot drift unnoticed.
               #
               # This check is the reason the cache defect cannot recur silently: the first version
               # of this bed cloned with a constant `--branch main`, so podman's layer key never
@@ -276,6 +277,23 @@ check-docs:
         description: >-
             R10 bed for the opencharly.ai documentation site. Deploying it to steady state proves the docs-site-app box — whose image build ran `npm ci` + the production Astro build and asserted the built site's shape (a generated CLI page, a candy page carrying its published acceptance plan, a recipe card with rewritten cross-references, a RUNTIME out-of-process plugin's page with its CUE schema, and the provider cross-index) — builds, starts, and stays up. The generator's own cross-reference integrity gate (an unresolvable /charly-x:y reference fails generation) is covered by the plugin's Go tests; this bed covers the artifact those produce. Content staleness against the pinned charly is gated by the docs repo's own deploy workflow, not here.
         plan:
+            # The pin-currency control this repo owns, run from the bed. It is a REPORT on
+            # the currency half (a pin that is behind stays green) and a FAILURE on the
+            # agreement half (the two occurrences must match) and on an unjudgeable pin.
+            # It runs on the HOST, over this repo's own sources — the bed's image proves
+            # the pin is held, and nothing inside the image can see the tree that named
+            # it. `${CHARLY_BIN}` is the active binary and resolves this project, so the
+            # task it dispatches is the one declared above.
+            - check: the DOCS_REF pin's state is reported, and the two occurrences agree
+              id: docs-pin-state
+              exit_status: 0
+              stdout:
+                - contains: 0 failed
+              context:
+                - runtime
+              command:
+                command: ${CHARLY_BIN} task docs-pin
+                in_container: false
             - check: the docs-site pod reached steady state (the built site's box runs)
               id: docs-pod-running
               exit_status: 0
@@ -295,6 +313,34 @@ check-docs:
               context:
                 - runtime
               command: cat /srv/docs/dist/index.html
+
+# =============================================================================
+# docs-pin — the pin-currency control this repo OWNS. It was delegated to this
+# repo by charly#452, which deleted the equivalent control from the charly repo.
+#
+# It REPORTS rather than fails on a pin that is BEHIND: the advance is available
+# NOW in opencharly/docs, and a control that is red for every docs merge that
+# has not been re-pinned here is a nuisance that gets bypassed. The org pin
+# contract draws the same line — a pin that is behind is REPORTED, a pin the
+# workflow cannot JUDGE is a FAILURE.
+#
+# The script owns the logic so the task and the self-test drive ONE
+# implementation (R2), and the self-test proves each branch discriminates.
+# =============================================================================
+docs-pin:
+    task:
+        description: |-
+            Report the DOCS_REF pin's state — whether it is the docs repo's current main head,
+            and whether the two occurrences of the sha in charly.yml agree. BEHIND is reported
+            and stays green; DISAGREE (the two occurrences do not match) and UNJUDGEABLE (the
+            docs repo's head could not be fetched) fail.
+        plan:
+            - check: the DOCS_REF pin's state is reported, and the two occurrences agree
+              command: bash scripts/docs-pin-report.sh
+              context: [runtime]
+            - check: the pin report discriminates — each case turns it RED (fixtures)
+              command: bash scripts/docs-pin-report.sh --self-test
+              context: [runtime]
 
 docs-site-skill:
     skill:
