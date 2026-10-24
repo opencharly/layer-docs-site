@@ -108,7 +108,9 @@ It reads `DOCS_REF` and `DOCS_REPO` from this repo's `charly.yml`, fetches the d
 | **UNJUDGEABLE** | the head could not be fetched, or no `DOCS_REF` is declared | 1 |
 
 `scripts/docs-pin-report.sh` owns the logic, and `--self-test` proves each state
-discriminates against fixtures. The task runs both.
+discriminates against fixtures. Each case asserts the state's own REPORT, not only an
+exit status: `current` and `BEHIND` both exit 0, so only the message tells them apart.
+The task runs both.
 
 ## Verification
 

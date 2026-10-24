@@ -325,7 +325,9 @@ check-docs:
 # workflow cannot JUDGE is a FAILURE.
 #
 # The script owns the logic so the task and the self-test drive ONE
-# implementation (R2), and the self-test proves each branch discriminates.
+# implementation (R2), and the self-test proves each STATE discriminates — each case
+# asserts the state's own report, not only an exit status, because the current state
+# and the BEHIND state share the exit code 0.
 # =============================================================================
 docs-pin:
     task:
@@ -338,7 +340,7 @@ docs-pin:
             - check: the DOCS_REF pin's state is reported, and the two occurrences agree
               command: bash scripts/docs-pin-report.sh
               context: [runtime]
-            - check: the pin report discriminates — each case turns it RED (fixtures)
+            - check: the pin report discriminates — every state is proved, the defective ones RED (fixtures)
               command: bash scripts/docs-pin-report.sh --self-test
               context: [runtime]
 
