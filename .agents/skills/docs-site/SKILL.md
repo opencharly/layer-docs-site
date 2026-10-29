@@ -98,7 +98,7 @@ charly task docs-pin
 ```
 
 It reads `DOCS_REF` and `DOCS_REPO` from this repo's `charly.yml`, fetches the docs repo's
-`main` head with `git ls-remote`, and reports one of three states:
+`main` head with `git ls-remote`, and reports one of four states:
 
 | State | Meaning | Exit |
 |---|---|---|
@@ -111,6 +111,13 @@ It reads `DOCS_REF` and `DOCS_REPO` from this repo's `charly.yml`, fetches the d
 discriminates against fixtures. Each case asserts the state's own REPORT, not only an
 exit status: `current` and `BEHIND` both exit 0, so only the message tells them apart.
 The task runs both.
+
+Every report NAMES the state it is in, so the state is greppable in the output — and the
+self-test proves this table stays the report's own list: the count the sentence above
+claims, the rows above, and the states the script declares are asserted equal, and four
+mutations (a wrong count, a missing row, a row this script never declares, and a state
+this script declares that this table does not name) each turn the check red. A fifth
+state therefore cannot be added silently, in either direction.
 
 ## Verification
 
